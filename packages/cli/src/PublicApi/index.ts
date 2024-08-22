@@ -1,21 +1,21 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+import { Container } from 'typedi';
 import type { Router } from 'express';
 import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
 
 import validator from 'validator';
-import { middleware as openapiValidatorMiddleware } from 'express-openapi-validator';
 import YAML from 'yamljs';
 import type { HttpError } from 'express-openapi-validator/dist/framework/types';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JsonObject } from 'swagger-ui-express';
 
-import config from '@/config';
-import * as Db from '@/Db';
-import { getInstanceBaseUrl } from '@/UserManagement/UserManagementHelper';
-import { Container } from 'typedi';
-import { InternalHooks } from '@/InternalHooks';
+import { License } from '@/license';
+import { UserRepository } from '@db/repositories/user.repository';
+import { UrlService } from '@/services/url.service';
+import type { AuthenticatedRequest } from '@/requests';
+import { GlobalConfig } from '@n8n/config';
+import { EventService } from '@/events/event.service';
 
 async function createApiRouter(
 	version: string,
@@ -23,18 +23,18 @@ async function createApiRouter(
 	handlersDirectory: string,
 	publicApiEndpoint: string,
 ): Promise<Router> {
-	const n8nPath = config.getEnv('path');
+	const n8nPath = Container.get(GlobalConfig).path;
 	const swaggerDocument = YAML.load(openApiSpecPath) as JsonObject;
 	// add the server depending on the config so the user can interact with the API
 	// from the Swagger UI
 	swaggerDocument.server = [
 		{
-			url: `${getInstanceBaseUrl()}/${publicApiEndpoint}/${version}}`,
+			url: `${Container.get(UrlService).getInstanceBaseUrl()}/${publicApiEndpoint}/${version}}`,
 		},
 	];
 	const apiController = express.Router();
 
-	if (!config.getEnv('publicApi.swaggerUi.disabled')) {
+	if (!Container.get(GlobalConfig).publicApi.swaggerUiDisabled) {
 		const { serveFiles, setup } = await import('swagger-ui-express');
 		const swaggerThemePath = path.join(__dirname, 'swaggerTheme.css');
 		const swaggerThemeCss = await fs.readFile(swaggerThemePath, { encoding: 'utf-8' });
@@ -50,32 +50,30 @@ async function createApiRouter(
 		);
 	}
 
-	apiController.get(`/${publicApiEndpoint}/${version}/openapi.yml`, (req, res) => {
+	apiController.get(`/${publicApiEndpoint}/${version}/openapi.yml`, (_, res) => {
 		res.sendFile(openApiSpecPath);
 	});
 
+	const { middleware: openApiValidatorMiddleware } = await import('express-openapi-validator');
 	apiController.use(
 		`/${publicApiEndpoint}/${version}`,
 		express.json(),
-		openapiValidatorMiddleware({
+		openApiValidatorMiddleware({
 			apiSpec: openApiSpecPath,
 			operationHandlers: handlersDirectory,
 			validateRequests: true,
 			validateApiSpec: true,
-			formats: [
-				{
-					name: 'email',
+			formats: {
+				email: {
 					type: 'string',
 					validate: (email: string) => validator.isEmail(email),
 				},
-				{
-					name: 'identifier',
+				identifier: {
 					type: 'string',
 					validate: (identifier: string) =>
 						validator.isUUID(identifier) || validator.isEmail(identifier),
 				},
-				{
-					name: 'jsonString',
+				jsonString: {
 					validate: (data: string) => {
 						try {
 							JSON.parse(data);
@@ -85,27 +83,26 @@ async function createApiRouter(
 						}
 					},
 				},
-			],
+			},
 			validateSecurity: {
 				handlers: {
 					ApiKeyAuth: async (
-						req: express.Request,
+						req: AuthenticatedRequest,
 						_scopes: unknown,
 						schema: OpenAPIV3.ApiKeySecurityScheme,
 					): Promise<boolean> => {
 						const apiKey = req.headers[schema.name.toLowerCase()] as string;
-						const user = await Db.collections.User.findOne({
+						const user = await Container.get(UserRepository).findOne({
 							where: { apiKey },
-							relations: ['globalRole'],
 						});
 
 						if (!user) return false;
 
-						void Container.get(InternalHooks).onUserInvokedApi({
-							user_id: user.id,
+						Container.get(EventService).emit('public-api-invoked', {
+							userId: user.id,
 							path: req.path,
 							method: req.method,
-							api_version: version,
+							apiVersion: version,
 						});
 
 						req.user = user;
@@ -142,12 +139,18 @@ export const loadPublicApiVersions = async (
 	const apiRouters = await Promise.all(
 		versions.map(async (version) => {
 			const openApiPath = path.join(__dirname, version, 'openapi.yml');
-			return createApiRouter(version, openApiPath, __dirname, publicApiEndpoint);
+			return await createApiRouter(version, openApiPath, __dirname, publicApiEndpoint);
 		}),
 	);
 
+	const version = versions.pop()?.charAt(1);
+
 	return {
 		apiRouters,
-		apiLatestVersion: Number(versions.pop()?.charAt(1)) ?? 1,
+		apiLatestVersion: version ? Number(version) : 1,
 	};
 };
+
+export function isApiEnabled(): boolean {
+	return !Container.get(GlobalConfig).publicApi.disabled && !Container.get(License).isAPIDisabled();
+}

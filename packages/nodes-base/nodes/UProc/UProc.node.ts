@@ -42,7 +42,7 @@ export class UProc implements INodeType {
 				displayName: 'Additional Options',
 				name: 'additionalOptions',
 				type: 'collection',
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				default: {},
 				displayOptions: {
 					show: {
@@ -102,7 +102,6 @@ export class UProc implements INodeType {
 				return field.name;
 			});
 
-		const _requestPromises = [];
 		for (let i = 0; i < length; i++) {
 			try {
 				const toolKey = tool.replace(/([A-Z]+)/g, '-$1').toLowerCase();
@@ -135,7 +134,7 @@ export class UProc implements INodeType {
 					returnData.push(responseData as IDataObject);
 				}
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					returnData.push({ error: error.message });
 					continue;
 				}

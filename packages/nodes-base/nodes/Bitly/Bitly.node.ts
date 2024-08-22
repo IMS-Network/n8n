@@ -83,7 +83,7 @@ export class Bitly implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the available groups to display them to user so that he can
+			// Get all the available groups to display them to user so that they can
 			// select them easily
 			async getGroups(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -98,7 +98,7 @@ export class Bitly implements INodeType {
 				}
 				return returnData;
 			},
-			// Get all the available tags to display them to user so that he can
+			// Get all the available tags to display them to user so that they can
 			// select them easily
 			async getTags(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const groupId = this.getCurrentNodeParameter('group') as string;
@@ -211,13 +211,13 @@ export class Bitly implements INodeType {
 				);
 				returnData.push(...executionData);
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					returnData.push({ error: error.message, json: {}, itemIndex: i });
 					continue;
 				}
 				throw error;
 			}
 		}
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

@@ -301,7 +301,7 @@ export const coinFields: INodeProperties[] = [
 		name: 'days',
 		required: true,
 		type: 'options',
-		// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items
+
 		options: [
 			{
 				name: '1',
@@ -394,7 +394,7 @@ export const coinFields: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		displayOptions: {
 			show: {
@@ -555,7 +555,7 @@ export const coinFields: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		displayOptions: {
 			show: {
@@ -608,7 +608,7 @@ export const coinFields: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		displayOptions: {
 			show: {

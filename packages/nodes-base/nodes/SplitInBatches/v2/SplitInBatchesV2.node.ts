@@ -46,7 +46,7 @@ export class SplitInBatchesV2 implements INodeType {
 				displayName: 'Options',
 				name: 'options',
 				type: 'collection',
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				default: {},
 				options: [
 					{
@@ -153,8 +153,11 @@ export class SplitInBatchesV2 implements INodeType {
 		nodeContext.noItemsLeft = nodeContext.items.length === 0;
 
 		if (returnItems.length === 0) {
+			nodeContext.done = true;
 			return [[], nodeContext.processedItems];
 		}
+
+		nodeContext.done = false;
 
 		return [returnItems, []];
 	}

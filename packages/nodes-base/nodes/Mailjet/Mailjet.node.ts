@@ -76,7 +76,7 @@ export class Mailjet implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the available custom fields to display them to user so that he can
+			// Get all the available custom fields to display them to user so that they can
 			// select them easily
 			async getTemplates(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -310,7 +310,7 @@ export class Mailjet implements INodeType {
 
 				returnData.push(...executionData);
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionErrorData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -322,6 +322,6 @@ export class Mailjet implements INodeType {
 			}
 		}
 
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

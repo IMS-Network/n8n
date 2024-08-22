@@ -26,8 +26,7 @@ export class Affinity implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Affinity',
 		name: 'affinity',
-		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
-		icon: 'file:affinity.png',
+		icon: { light: 'file:affinity.svg', dark: 'file:affinity.dark.svg' },
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
@@ -82,7 +81,7 @@ export class Affinity implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the available organizations to display them to user so that he can
+			// Get all the available organizations to display them to user so that they can
 			// select them easily
 			async getOrganizations(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -103,7 +102,7 @@ export class Affinity implements INodeType {
 				}
 				return returnData;
 			},
-			// Get all the available persons to display them to user so that he can
+			// Get all the available persons to display them to user so that they can
 			// select them easily
 			async getPersons(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -127,7 +126,7 @@ export class Affinity implements INodeType {
 				}
 				return returnData;
 			},
-			// Get all the available lists to display them to user so that he can
+			// Get all the available lists to display them to user so that they can
 			// select them easily
 			async getLists(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -420,7 +419,7 @@ export class Affinity implements INodeType {
 
 				returnData.push(...executionData);
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionErrorData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -432,6 +431,6 @@ export class Affinity implements INodeType {
 			}
 		}
 
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

@@ -1,5 +1,3 @@
-import type { OptionsWithUri } from 'request';
-
 import type {
 	IExecuteFunctions,
 	ILoadOptionsFunctions,
@@ -7,14 +5,15 @@ import type {
 	IHookFunctions,
 	IWebhookFunctions,
 	JsonObject,
+	IRequestOptions,
+	IHttpRequestMethods,
 } from 'n8n-workflow';
 import { NodeApiError } from 'n8n-workflow';
 
 export async function autopilotApiRequest(
 	this: IExecuteFunctions | IWebhookFunctions | IHookFunctions | ILoadOptionsFunctions,
-	method: string,
+	method: IHttpRequestMethods,
 	resource: string,
-
 	body: any = {},
 	query: IDataObject = {},
 	uri?: string,
@@ -26,7 +25,7 @@ export async function autopilotApiRequest(
 
 	const endpoint = 'https://api2.autopilothq.com/v1';
 
-	const options: OptionsWithUri = {
+	const options: IRequestOptions = {
 		headers: {
 			'Content-Type': 'application/json',
 			autopilotapikey: apiKey,
@@ -54,7 +53,7 @@ export async function autopilotApiRequest(
 export async function autopilotApiRequestAllItems(
 	this: IExecuteFunctions | ILoadOptionsFunctions,
 	propertyName: string,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
 
 	body: any = {},
@@ -70,7 +69,8 @@ export async function autopilotApiRequestAllItems(
 		responseData = await autopilotApiRequest.call(this, method, endpoint, body, query);
 		endpoint = `${base}/${responseData.bookmark}`;
 		returnData.push.apply(returnData, responseData[propertyName] as IDataObject[]);
-		if (query.limit && returnData.length >= query.limit && !returnAll) {
+		const limit = query.limit as number | undefined;
+		if (limit && returnData.length >= limit && !returnAll) {
 			return returnData;
 		}
 	} while (responseData.bookmark !== undefined);

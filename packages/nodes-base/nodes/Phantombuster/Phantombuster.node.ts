@@ -72,7 +72,7 @@ export class Phantombuster implements INodeType {
 				return returnData;
 			},
 
-			// Get all the arguments to display them to user so that he can
+			// Get all the arguments to display them to user so that they can
 			// select them easily
 			// async getArguments(
 			// 	this: ILoadOptionsFunctions,
@@ -252,7 +252,7 @@ export class Phantombuster implements INodeType {
 				);
 				returnData.push(...executionData);
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -263,6 +263,6 @@ export class Phantombuster implements INodeType {
 				throw error;
 			}
 		}
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

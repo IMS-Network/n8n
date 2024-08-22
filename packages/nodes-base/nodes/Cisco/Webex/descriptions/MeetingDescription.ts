@@ -167,6 +167,7 @@ export const meetingFields: INodeProperties[] = [
 			{
 				displayName: 'Exclude Password',
 				name: 'excludePassword',
+
 				type: 'boolean',
 				default: false,
 				description: 'Whether or not to exclude password from the meeting email invitation',
@@ -381,7 +382,7 @@ export const meetingFields: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		displayOptions: {
 			show: {
@@ -429,7 +430,7 @@ export const meetingFields: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		displayOptions: {
 			show: {
@@ -746,6 +747,7 @@ export const meetingFields: INodeProperties[] = [
 			{
 				displayName: 'Exclude Password',
 				name: 'excludePassword',
+
 				type: 'boolean',
 				default: false,
 				description: 'Whether or not to exclude password from the meeting email invitation',

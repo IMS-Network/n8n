@@ -54,7 +54,7 @@ export class MailerLite implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the available custom fields to display them to user so that he can
+			// Get all the available custom fields to display them to user so that they can
 			// select them easily
 			async getCustomFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -181,7 +181,7 @@ export class MailerLite implements INodeType {
 					}
 				}
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionErrorData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -200,6 +200,6 @@ export class MailerLite implements INodeType {
 			returnData.push(...executionData);
 		}
 
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

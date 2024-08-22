@@ -1,11 +1,10 @@
-import type { OptionsWithUri } from 'request';
-
 import type {
 	IDataObject,
 	IExecuteFunctions,
-	IExecuteSingleFunctions,
 	IHookFunctions,
 	ILoadOptionsFunctions,
+	IHttpRequestMethods,
+	IRequestOptions,
 } from 'n8n-workflow';
 
 function getUri(resource: string, subdomain: string) {
@@ -17,8 +16,8 @@ function getUri(resource: string, subdomain: string) {
 }
 
 export async function zendeskApiRequest(
-	this: IHookFunctions | IExecuteFunctions | IExecuteSingleFunctions | ILoadOptionsFunctions,
-	method: string,
+	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions,
+	method: IHttpRequestMethods,
 	resource: string,
 
 	body: any = {},
@@ -36,7 +35,7 @@ export async function zendeskApiRequest(
 		credentials = (await this.getCredentials('zendeskOAuth2Api')) as { subdomain: string };
 	}
 
-	let options: OptionsWithUri = {
+	let options: IRequestOptions = {
 		method,
 		qs,
 		body,
@@ -54,7 +53,7 @@ export async function zendeskApiRequest(
 
 	const credentialType = authenticationMethod === 'apiToken' ? 'zendeskApi' : 'zendeskOAuth2Api';
 
-	return this.helpers.requestWithAuthentication.call(this, credentialType, options);
+	return await this.helpers.requestWithAuthentication.call(this, credentialType, options);
 }
 
 /**
@@ -64,7 +63,7 @@ export async function zendeskApiRequest(
 export async function zendeskApiRequestAllItems(
 	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions,
 	propertyName: string,
-	method: string,
+	method: IHttpRequestMethods,
 	resource: string,
 
 	body: any = {},
@@ -80,7 +79,8 @@ export async function zendeskApiRequestAllItems(
 		responseData = await zendeskApiRequest.call(this, method, resource, body, query, uri);
 		uri = responseData.next_page;
 		returnData.push.apply(returnData, responseData[propertyName] as IDataObject[]);
-		if (query.limit && query.limit <= returnData.length) {
+		const limit = query.limit as number | undefined;
+		if (limit && limit <= returnData.length) {
 			return returnData;
 		}
 	} while (responseData.next_page !== undefined && responseData.next_page !== null);

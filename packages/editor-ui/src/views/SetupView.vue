@@ -1,43 +1,37 @@
 <template>
 	<AuthView
 		:form="FORM_CONFIG"
-		:formLoading="loading"
+		:form-loading="loading"
 		data-test-id="setup-form"
 		@submit="onSubmit"
-		@secondaryClick="showSkipConfirmation"
 	/>
 </template>
 
 <script lang="ts">
 import AuthView from './AuthView.vue';
-import { showMessage } from '@/mixins/showMessage';
+import { defineComponent } from 'vue';
 
-import mixins from 'vue-typed-mixins';
-import { IFormBoxConfig } from '@/Interface';
-import { VIEWS, ASSUMPTION_EXPERIMENT } from '@/constants';
-import { restApi } from '@/mixins/restApi';
+import { useToast } from '@/composables/useToast';
+import type { IFormBoxConfig } from '@/Interface';
+import { MORE_ONBOARDING_OPTIONS_EXPERIMENT, VIEWS } from '@/constants';
 import { mapStores } from 'pinia';
-import { useUIStore } from '@/stores/ui';
-import { useSettingsStore } from '@/stores/settings';
-import { useUsersStore } from '@/stores/users';
-import { useCredentialsStore } from '@/stores/credentials';
-import { usePostHog } from '@/stores/posthog';
+import { useUIStore } from '@/stores/ui.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useUsersStore } from '@/stores/users.store';
+import { usePostHog } from '@/stores/posthog.store';
 
-export default mixins(showMessage, restApi).extend({
+export default defineComponent({
 	name: 'SetupView',
 	components: {
 		AuthView,
 	},
-	async mounted() {
-		const { credentials, workflows } = await this.usersStore.preOwnerSetup();
-		this.credentialsCount = credentials;
-		this.workflowsCount = workflows;
+	setup() {
+		return useToast();
 	},
 	data() {
 		const FORM_CONFIG: IFormBoxConfig = {
 			title: this.$locale.baseText('auth.setup.setupOwner'),
 			buttonText: this.$locale.baseText('auth.setup.next'),
-			secondaryButtonText: this.$locale.baseText('auth.setup.skipSetupTemporarily'),
 			inputs: [
 				{
 					name: 'email',
@@ -95,62 +89,18 @@ export default mixins(showMessage, restApi).extend({
 		return {
 			FORM_CONFIG,
 			loading: false,
-			workflowsCount: 0,
-			credentialsCount: 0,
 		};
 	},
 	computed: {
-		...mapStores(useCredentialsStore, useSettingsStore, useUIStore, useUsersStore),
-		isDemoTest(): boolean {
-			return usePostHog().isVariantEnabled(ASSUMPTION_EXPERIMENT.name, ASSUMPTION_EXPERIMENT.demo);
-		},
+		...mapStores(useSettingsStore, useUIStore, useUsersStore, usePostHog),
 	},
 	methods: {
-		async confirmSetupOrGoBack(): Promise<boolean> {
-			if (this.workflowsCount === 0 && this.credentialsCount === 0) {
-				return true;
-			}
-
-			const workflows =
-				this.workflowsCount > 0
-					? this.$locale.baseText('auth.setup.setupConfirmation.existingWorkflows', {
-							adjustToNumber: this.workflowsCount,
-					  })
-					: '';
-
-			const credentials =
-				this.credentialsCount > 0
-					? this.$locale.baseText('auth.setup.setupConfirmation.credentials', {
-							adjustToNumber: this.credentialsCount,
-					  })
-					: '';
-
-			const entities =
-				workflows && credentials
-					? this.$locale.baseText('auth.setup.setupConfirmation.concatEntities', {
-							interpolate: { workflows, credentials },
-					  })
-					: workflows || credentials;
-			return await this.confirmMessage(
-				this.$locale.baseText('auth.setup.confirmOwnerSetupMessage', {
-					interpolate: {
-						entities,
-					},
-				}),
-				this.$locale.baseText('auth.setup.confirmOwnerSetup'),
-				null,
-				this.$locale.baseText('auth.setup.createAccount'),
-				this.$locale.baseText('auth.setup.goBack'),
-			);
-		},
 		async onSubmit(values: { [key: string]: string | boolean }) {
 			try {
-				const confirmSetup = await this.confirmSetupOrGoBack();
-				if (!confirmSetup) {
-					return;
-				}
-
 				const forceRedirectedHere = this.settingsStore.showSetupPage;
+				const isPartOfOnboardingExperiment =
+					this.posthogStore.getVariant(MORE_ONBOARDING_OPTIONS_EXPERIMENT.name) ===
+					MORE_ONBOARDING_OPTIONS_EXPERIMENT.variant;
 				this.loading = true;
 				await this.usersStore.createOwner(
 					values as { firstName: string; lastName: string; email: string; password: string },
@@ -163,32 +113,18 @@ export default mixins(showMessage, restApi).extend({
 				}
 
 				if (forceRedirectedHere) {
-					await this.$router.push({ name: this.isDemoTest ? VIEWS.HOMEPAGE : VIEWS.NEW_WORKFLOW });
+					if (isPartOfOnboardingExperiment) {
+						await this.$router.push({ name: VIEWS.WORKFLOWS });
+					} else {
+						await this.$router.push({ name: VIEWS.NEW_WORKFLOW });
+					}
 				} else {
 					await this.$router.push({ name: VIEWS.USERS_SETTINGS });
 				}
 			} catch (error) {
-				this.$showError(error, this.$locale.baseText('auth.setup.settingUpOwnerError'));
+				this.showError(error, this.$locale.baseText('auth.setup.settingUpOwnerError'));
 			}
 			this.loading = false;
-		},
-		async showSkipConfirmation() {
-			const skip = await this.confirmMessage(
-				this.$locale.baseText('auth.setup.ownerAccountBenefits'),
-				this.$locale.baseText('auth.setup.skipOwnerSetupQuestion'),
-				null,
-				this.$locale.baseText('auth.setup.skipSetup'),
-				this.$locale.baseText('auth.setup.goBack'),
-			);
-			if (skip) {
-				this.onSkip();
-			}
-		},
-		onSkip() {
-			this.usersStore.skipOwnerSetup();
-			this.$router.push({
-				name: this.isDemoTest ? VIEWS.HOMEPAGE : VIEWS.NEW_WORKFLOW,
-			});
 		},
 	},
 });

@@ -75,7 +75,7 @@ export class AwsSns implements INodeType {
 				displayName: 'Options',
 				name: 'options',
 				type: 'collection',
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				default: {},
 				options: [
 					{
@@ -302,8 +302,8 @@ export class AwsSns implements INodeType {
 
 					const params = [
 						'TopicArn=' + topic,
-						'Subject=' + (this.getNodeParameter('subject', i) as string),
-						'Message=' + (this.getNodeParameter('message', i) as string),
+						'Subject=' + encodeURIComponent(this.getNodeParameter('subject', i) as string),
+						'Message=' + encodeURIComponent(this.getNodeParameter('message', i) as string),
 					];
 
 					const responseData = await awsApiRequestSOAP.call(
@@ -317,7 +317,7 @@ export class AwsSns implements INodeType {
 					} as IDataObject);
 				}
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					returnData.push({ error: error.message });
 					continue;
 				}

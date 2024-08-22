@@ -9,17 +9,10 @@
 	</div>
 </template>
 
-<script lang="ts">
-import Vue from 'vue';
-
-export default Vue.extend({
-	name: 'TemplateDetailsBlock',
-	props: {
-		title: {
-			type: String,
-		},
-	},
-});
+<script lang="ts" setup>
+defineProps<{
+	title: string;
+}>();
 </script>
 
 <style lang="scss" module>

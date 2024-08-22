@@ -1,10 +1,10 @@
 <template>
 	<Draggable
 		type="panel-resize"
+		:class="$style.dragContainer"
 		@drag="onDrag"
 		@dragstart="onDragStart"
 		@dragend="onDragEnd"
-		:class="$style.dragContainer"
 	>
 		<template #default="{ isDragging }">
 			<div :class="{ [$style.dragButton]: true }">
@@ -42,10 +42,11 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import Draggable from './Draggable.vue';
+import type { XYPosition } from '@/Interface';
 
-export default Vue.extend({
+export default defineComponent({
 	components: {
 		Draggable,
 	},
@@ -58,7 +59,7 @@ export default Vue.extend({
 		},
 	},
 	methods: {
-		onDrag(e: { x: number; y: number }) {
+		onDrag(e: XYPosition) {
 			this.$emit('drag', e);
 		},
 		onDragStart() {

@@ -30,6 +30,7 @@ export class Automizy implements INodeType {
 		},
 		inputs: ['main'],
 		outputs: ['main'],
+		hidden: true,
 		credentials: [
 			{
 				name: 'automizyApi',
@@ -37,6 +38,13 @@ export class Automizy implements INodeType {
 			},
 		],
 		properties: [
+			{
+				displayName:
+					'This service may no longer exist and will be removed from n8n in a future release.',
+				name: 'deprecated',
+				type: 'notice',
+				default: '',
+			},
 			{
 				displayName: 'Resource',
 				name: 'resource',
@@ -65,7 +73,7 @@ export class Automizy implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the tags to display them to user so that he can
+			// Get all the tags to display them to user so that they can
 			// select them easily
 			async getLists(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -362,6 +370,6 @@ export class Automizy implements INodeType {
 
 		returnData.push(...(responseData as NodeExecutionWithMetadata[]));
 
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

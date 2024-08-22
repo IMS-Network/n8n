@@ -502,6 +502,11 @@ export class StripeTrigger implements INodeType {
 						description: 'Occurs when a PaymentIntent has been successfully fulfilled.',
 					},
 					{
+						name: 'Payment Intent.requires_action',
+						value: 'payment_intent.requires_action',
+						description: 'Occurs when a PaymentIntent requires an action.',
+					},
+					{
 						name: 'Payment Method.attached',
 						value: 'payment_method.attached',
 						description: 'Occurs whenever a new payment method is attached to a customer.',
@@ -860,12 +865,15 @@ export class StripeTrigger implements INodeType {
 			async create(this: IHookFunctions): Promise<boolean> {
 				const webhookUrl = this.getNodeWebhookUrl('default');
 
+				const webhookDescription = `Created by n8n for workflow ID: ${this.getWorkflow().id}`;
+
 				const events = this.getNodeParameter('events', []);
 
 				const endpoint = '/webhook_endpoints';
 
 				const body = {
 					url: webhookUrl,
+					description: webhookDescription,
 					enabled_events: events,
 				};
 

@@ -7,45 +7,50 @@
 			v-for="option in options"
 			:key="option.value"
 			v-bind="option"
-			:active="value === option.value"
+			:active="modelValue === option.value"
 			:size="size"
 			:disabled="disabled || option.disabled"
-			@click="(e) => onClick(option, e)"
+			@click.prevent.stop="onClick(option, $event)"
 		/>
 	</div>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 import RadioButton from './RadioButton.vue';
 
-import Vue from 'vue';
+interface RadioOption {
+	label: string;
+	value: string;
+	disabled?: boolean;
+}
 
-export default Vue.extend({
-	name: 'n8n-radio-buttons',
-	props: {
-		value: {
-			type: String,
-		},
-		options: {},
-		size: {
-			type: String,
-		},
-		disabled: {
-			type: Boolean,
-		},
-	},
-	components: {
-		RadioButton,
-	},
-	methods: {
-		onClick(option: { label: string; value: string; disabled?: boolean }) {
-			if (this.disabled || option.disabled) {
-				return;
-			}
-			this.$emit('input', option.value);
-		},
-	},
+interface RadioButtonsProps {
+	modelValue?: string;
+	options?: RadioOption[];
+	/** @default medium */
+	size?: 'small' | 'medium';
+	disabled?: boolean;
+}
+
+const props = withDefaults(defineProps<RadioButtonsProps>(), {
+	active: false,
+	disabled: false,
+	size: 'medium',
 });
+
+const emit = defineEmits<{
+	'update:modelValue': [value: string, e: MouseEvent];
+}>();
+
+const onClick = (
+	option: { label: string; value: string; disabled?: boolean },
+	event: MouseEvent,
+) => {
+	if (props.disabled || option.disabled) {
+		return;
+	}
+	emit('update:modelValue', option.value, event);
+};
 </script>
 
 <style lang="scss" module>

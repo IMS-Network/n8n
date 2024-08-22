@@ -21,8 +21,8 @@ export class Intercom implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Intercom',
 		name: 'intercom',
-		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
-		icon: 'file:intercom.png',
+
+		icon: 'file:intercom.svg',
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
@@ -75,7 +75,7 @@ export class Intercom implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the available companies to display them to user so that he can
+			// Get all the available companies to display them to user so that they can
 			// select them easily
 			async getCompanies(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -621,7 +621,7 @@ export class Intercom implements INodeType {
 
 				returnData.push(...executionData);
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionErrorData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -633,6 +633,6 @@ export class Intercom implements INodeType {
 			}
 		}
 
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

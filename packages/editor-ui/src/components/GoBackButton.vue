@@ -5,27 +5,15 @@
 	</div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { useRouter } from 'vue-router';
 import { VIEWS } from '@/constants';
-import Vue from 'vue';
 
-export default Vue.extend({
-	name: 'GoBackButton',
-	data() {
-		return {
-			routeHasHistory: false,
-		};
-	},
-	methods: {
-		navigateTo() {
-			if (this.routeHasHistory) this.$router.go(-1);
-			else this.$router.push({ name: VIEWS.TEMPLATES });
-		},
-	},
-	mounted() {
-		window.history.state ? (this.routeHasHistory = true) : (this.routeHasHistory = false);
-	},
-});
+const router = useRouter();
+
+const navigateTo = () => {
+	void router.push({ name: VIEWS.TEMPLATES });
+};
 </script>
 
 <style lang="scss" module>

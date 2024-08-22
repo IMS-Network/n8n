@@ -16,8 +16,8 @@ export class GoogleTasks implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Google Tasks',
 		name: 'googleTasks',
-		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
-		icon: 'file:googleTasks.png',
+
+		icon: 'file:googleTasks.svg',
 		group: ['input'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
@@ -54,7 +54,7 @@ export class GoogleTasks implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the tasklists to display them to user so that he can select them easily
+			// Get all the tasklists to display them to user so that they can select them easily
 
 			async getTasks(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -259,7 +259,7 @@ export class GoogleTasks implements INodeType {
 
 				returnData.push(...executionData);
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionErrorData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -271,6 +271,6 @@ export class GoogleTasks implements INodeType {
 			}
 		}
 
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

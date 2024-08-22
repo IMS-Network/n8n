@@ -10,7 +10,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { countriesCodes } from './CountriesCodes';
+import { isoCountryCodes } from '@utils/ISOCountryCodes';
 
 import { conversationFields, conversationOperations } from './ConversationDescription';
 
@@ -87,11 +87,11 @@ export class HelpScout implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the countries codes to display them to user so that he can
+			// Get all the countries codes to display them to user so that they can
 			// select them easily
 			async getCountriesCodes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
-				for (const countryCode of countriesCodes) {
+				for (const countryCode of isoCountryCodes) {
 					const countryCodeName = `${countryCode.name} - ${countryCode.alpha2}`;
 					const countryCodeId = countryCode.alpha2;
 					returnData.push({
@@ -101,7 +101,7 @@ export class HelpScout implements INodeType {
 				}
 				return returnData;
 			},
-			// Get all the tags to display them to user so that he can
+			// Get all the tags to display them to user so that they can
 			// select them easily
 			async getTags(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -113,7 +113,6 @@ export class HelpScout implements INodeType {
 				);
 				for (const tag of tags) {
 					const tagName = tag.name;
-					const _tagId = tag.id;
 					returnData.push({
 						name: tagName,
 						value: tagName,
@@ -121,7 +120,7 @@ export class HelpScout implements INodeType {
 				}
 				return returnData;
 			},
-			// Get all the mailboxes to display them to user so that he can
+			// Get all the mailboxes to display them to user so that they can
 			// select them easily
 			async getMailboxes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -457,10 +456,16 @@ export class HelpScout implements INodeType {
 					//https://developer.helpscout.com/mailbox-api/endpoints/conversations/threads/chat
 					if (operation === 'create') {
 						const conversationId = this.getNodeParameter('conversationId', i) as string;
-						const _type = this.getNodeParameter('type', i) as string;
 						const text = this.getNodeParameter('text', i) as string;
 						const additionalFields = this.getNodeParameter('additionalFields', i);
 						const attachments = this.getNodeParameter('attachmentsUi', i) as IDataObject;
+						let threadType = this.getNodeParameter('type', i) as string;
+
+						// We need to update the types to match the API - Avoids a breaking change
+						const singular = ['reply', 'customer'];
+						if (!singular.includes(threadType)) {
+							threadType = `${threadType}s`;
+						}
 						const body: IThread = {
 							text,
 							attachments: [],
@@ -529,7 +534,7 @@ export class HelpScout implements INodeType {
 						responseData = await helpscoutApiRequest.call(
 							this,
 							'POST',
-							`/v2/conversations/${conversationId}/chats`,
+							`/v2/conversations/${conversationId}/${threadType}`,
 							body,
 						);
 						responseData = { success: true };
@@ -560,7 +565,7 @@ export class HelpScout implements INodeType {
 					}
 				}
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionErrorData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -579,6 +584,6 @@ export class HelpScout implements INodeType {
 			returnData.push(...executionData);
 		}
 
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

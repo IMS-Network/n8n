@@ -1,7 +1,7 @@
 <template>
 	<div :class="$style.container">
 		<div v-if="!isSharingEnabled">
-			<n8n-action-box
+			<N8nActionBox
 				:heading="
 					$locale.baseText(
 						uiStore.contextBasedTranslationKeys.credentials.sharing.unavailable.title,
@@ -12,98 +12,116 @@
 						uiStore.contextBasedTranslationKeys.credentials.sharing.unavailable.description,
 					)
 				"
-				:buttonText="
+				:button-text="
 					$locale.baseText(
 						uiStore.contextBasedTranslationKeys.credentials.sharing.unavailable.button,
 					)
 				"
-				@click="goToUpgrade"
-			/>
-		</div>
-		<div v-else-if="isDefaultUser">
-			<n8n-action-box
-				:heading="$locale.baseText('credentialEdit.credentialSharing.isDefaultUser.title')"
-				:description="
-					$locale.baseText('credentialEdit.credentialSharing.isDefaultUser.description')
-				"
-				:buttonText="$locale.baseText('credentialEdit.credentialSharing.isDefaultUser.button')"
-				@click="goToUsersSettings"
+				@click:button="goToUpgrade"
 			/>
 		</div>
 		<div v-else>
-			<n8n-info-tip :bold="false" class="mb-s">
-				<template v-if="credentialPermissions.isOwner">
-					{{ $locale.baseText('credentialEdit.credentialSharing.info.owner') }}
-				</template>
-				<template v-else>
-					{{
-						$locale.baseText('credentialEdit.credentialSharing.info.sharee', {
-							interpolate: { credentialOwnerName },
-						})
-					}}
-				</template>
-			</n8n-info-tip>
-			<n8n-info-tip
-				v-if="
-					!credentialPermissions.isOwner &&
-					!credentialPermissions.isSharee &&
-					credentialPermissions.isInstanceOwner
-				"
-				class="mb-s"
-				:bold="false"
-			>
-				{{ $locale.baseText('credentialEdit.credentialSharing.info.instanceOwner') }}
-			</n8n-info-tip>
-			<n8n-user-select
-				v-if="credentialPermissions.updateSharing"
-				class="mb-s"
-				size="large"
-				:users="usersList"
-				:currentUserId="usersStore.currentUser.id"
-				:placeholder="$locale.baseText('credentialEdit.credentialSharing.select.placeholder')"
-				data-test-id="credential-sharing-modal-users-select"
-				@input="onAddSharee"
-			>
-				<template #prefix>
-					<n8n-icon icon="search" />
-				</template>
-			</n8n-user-select>
-			<n8n-users-list
-				:actions="usersListActions"
-				:users="sharedWithList"
-				:currentUserId="usersStore.currentUser.id"
-				:readonly="!credentialPermissions.updateSharing"
-				@delete="onRemoveSharee"
+			<N8nInfoTip v-if="credentialPermissions.share" :bold="false" class="mb-s">
+				{{ $locale.baseText('credentialEdit.credentialSharing.info.owner') }}
+			</N8nInfoTip>
+			<N8nInfoTip v-else-if="isHomeTeamProject" :bold="false" class="mb-s">
+				{{ $locale.baseText('credentialEdit.credentialSharing.info.sharee.team') }}
+			</N8nInfoTip>
+			<N8nInfoTip v-else :bold="false" class="mb-s">
+				{{
+					$locale.baseText('credentialEdit.credentialSharing.info.sharee.personal', {
+						interpolate: { credentialOwnerName },
+					})
+				}}
+			</N8nInfoTip>
+			<ProjectSharing
+				v-model="sharedWithProjects"
+				:projects="projects"
+				:roles="credentialRoles"
+				:home-project="homeProject"
+				:readonly="!credentialPermissions.share"
+				:static="!credentialPermissions.share"
+				:placeholder="sharingSelectPlaceholder"
 			/>
 		</div>
 	</div>
 </template>
 
 <script lang="ts">
-import { IUser, IUserListAction, UIState } from '@/Interface';
-import mixins from 'vue-typed-mixins';
-import { showMessage } from '@/mixins/showMessage';
+import type {
+	ICredentialsResponse,
+	ICredentialsDecryptedResponse,
+	IUserListAction,
+} from '@/Interface';
+import { defineComponent } from 'vue';
+import type { PropType } from 'vue';
+import { useMessage } from '@/composables/useMessage';
 import { mapStores } from 'pinia';
-import { useUsersStore } from '@/stores/users';
-import { useSettingsStore } from '@/stores/settings';
-import { useUIStore } from '@/stores/ui';
-import { useCredentialsStore } from '@/stores/credentials';
-import { useUsageStore } from '@/stores/usage';
-import { EnterpriseEditionFeature, VIEWS } from '@/constants';
-import { BaseTextKey } from '@/plugins/i18n';
+import { useUsersStore } from '@/stores/users.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useUIStore } from '@/stores/ui.store';
+import { useCredentialsStore } from '@/stores/credentials.store';
+import { useUsageStore } from '@/stores/usage.store';
+import { EnterpriseEditionFeature } from '@/constants';
+import ProjectSharing from '@/components/Projects/ProjectSharing.vue';
+import { useProjectsStore } from '@/stores/projects.store';
+import type { ProjectListItem, ProjectSharingData } from '@/types/projects.types';
+import { ProjectTypes } from '@/types/projects.types';
+import type { ICredentialDataDecryptedObject } from 'n8n-workflow';
+import type { PermissionsRecord } from '@/permissions';
+import type { EventBus } from 'n8n-design-system/utils';
+import { useRolesStore } from '@/stores/roles.store';
+import type { RoleMap } from '@/types/roles.types';
+import { splitName } from '@/utils/projects.utils';
 
-export default mixins(showMessage).extend({
+export default defineComponent({
 	name: 'CredentialSharing',
-	props: [
-		'credential',
-		'credentialId',
-		'credentialData',
-		'sharedWith',
-		'credentialPermissions',
-		'modalBus',
-	],
+	components: {
+		ProjectSharing,
+	},
+	props: {
+		credential: {
+			type: Object as PropType<ICredentialsResponse | ICredentialsDecryptedResponse | null>,
+			default: null,
+		},
+		credentialId: {
+			type: String,
+			required: true,
+		},
+		credentialData: {
+			type: Object as PropType<ICredentialDataDecryptedObject>,
+			required: true,
+		},
+		credentialPermissions: {
+			type: Object as PropType<PermissionsRecord['credential']>,
+			required: true,
+		},
+		modalBus: {
+			type: Object as PropType<EventBus>,
+			required: true,
+		},
+	},
+	emits: ['update:modelValue'],
+	setup() {
+		return {
+			...useMessage(),
+		};
+	},
+	data() {
+		return {
+			sharedWithProjects: [...(this.credential?.sharedWithProjects ?? [])] as ProjectSharingData[],
+		};
+	},
 	computed: {
-		...mapStores(useCredentialsStore, useUsersStore, useUsageStore, useUIStore, useSettingsStore),
+		...mapStores(
+			useCredentialsStore,
+			useUsersStore,
+			useUsageStore,
+			useUIStore,
+			useSettingsStore,
+			useProjectsStore,
+			useRolesStore,
+		),
 		usersListActions(): IUserListAction[] {
 			return [
 				{
@@ -112,90 +130,80 @@ export default mixins(showMessage).extend({
 				},
 			];
 		},
-		isDefaultUser(): boolean {
-			return this.usersStore.isDefaultUser;
-		},
 		isSharingEnabled(): boolean {
-			return this.settingsStore.isEnterpriseFeatureEnabled(EnterpriseEditionFeature.Sharing);
-		},
-		usersList(): IUser[] {
-			return this.usersStore.allUsers.filter((user: IUser) => {
-				const isCurrentUser = user.id === this.usersStore.currentUser?.id;
-				const isAlreadySharedWithUser = (this.credentialData.sharedWith || []).find(
-					(sharee: IUser) => sharee.id === user.id,
-				);
-
-				return !isCurrentUser && !isAlreadySharedWithUser;
-			});
-		},
-		sharedWithList(): IUser[] {
-			return [
-				{
-					...(this.credential ? this.credential.ownedBy : this.usersStore.currentUser),
-					isOwner: true,
-				},
-			].concat(this.credentialData.sharedWith || []);
+			return this.settingsStore.isEnterpriseFeatureEnabled[EnterpriseEditionFeature.Sharing];
 		},
 		credentialOwnerName(): string {
-			return this.credentialsStore.getCredentialOwnerNameById(`${this.credentialId}`);
+			const { firstName, lastName, email } = splitName(this.credential?.homeProject?.name ?? '');
+			return firstName || lastName ? `${firstName}${lastName ? ' ' + lastName : ''}` : email ?? '';
 		},
+		credentialDataHomeProject(): ProjectSharingData | undefined {
+			const credentialContainsProjectSharingData = (
+				data: ICredentialDataDecryptedObject,
+			): data is { homeProject: ProjectSharingData } => {
+				return 'homeProject' in data;
+			};
+
+			return this.credentialData && credentialContainsProjectSharingData(this.credentialData)
+				? this.credentialData.homeProject
+				: undefined;
+		},
+		isCredentialSharedWithCurrentUser(): boolean {
+			if (!Array.isArray(this.credentialData.sharedWithProjects)) return false;
+
+			return this.credentialData.sharedWithProjects.some((sharee) => {
+				return typeof sharee === 'object' && 'id' in sharee
+					? sharee.id === this.usersStore.currentUser?.id
+					: false;
+			});
+		},
+		projects(): ProjectListItem[] {
+			return this.projectsStore.projects.filter(
+				(project) =>
+					project.id !== this.credential?.homeProject?.id &&
+					project.id !== this.credentialDataHomeProject?.id,
+			);
+		},
+		homeProject(): ProjectSharingData | undefined {
+			return this.credential?.homeProject ?? this.credentialDataHomeProject;
+		},
+		isHomeTeamProject(): boolean {
+			return this.homeProject?.type === ProjectTypes.Team;
+		},
+		credentialRoleTranslations(): Record<string, string> {
+			return {
+				'credential:user': this.$locale.baseText('credentialEdit.credentialSharing.role.user'),
+			};
+		},
+		credentialRoles(): RoleMap['credential'] {
+			return this.rolesStore.processedCredentialRoles.map(({ role, scopes, licensed }) => ({
+				role,
+				name: this.credentialRoleTranslations[role],
+				scopes,
+				licensed,
+			}));
+		},
+		sharingSelectPlaceholder() {
+			return this.projectsStore.teamProjects.length
+				? this.$locale.baseText('projects.sharing.select.placeholder.project')
+				: this.$locale.baseText('projects.sharing.select.placeholder.user');
+		},
+	},
+	watch: {
+		sharedWithProjects: {
+			handler(changedSharedWithProjects: ProjectSharingData[]) {
+				this.$emit('update:modelValue', changedSharedWithProjects);
+			},
+			deep: true,
+		},
+	},
+	async mounted() {
+		await Promise.all([this.usersStore.fetchUsers(), this.projectsStore.getAllProjects()]);
 	},
 	methods: {
-		async onAddSharee(userId: string) {
-			const sharee = { ...this.usersStore.getUserById(userId), isOwner: false };
-			this.$emit('change', (this.credentialData.sharedWith || []).concat(sharee));
-		},
-		async onRemoveSharee(userId: string) {
-			const user = this.usersStore.getUserById(userId);
-
-			if (user) {
-				const confirm = await this.confirmMessage(
-					this.$locale.baseText('credentialEdit.credentialSharing.list.delete.confirm.message', {
-						interpolate: { name: user.fullName || '' },
-					}),
-					this.$locale.baseText('credentialEdit.credentialSharing.list.delete.confirm.title'),
-					null,
-					this.$locale.baseText(
-						'credentialEdit.credentialSharing.list.delete.confirm.confirmButtonText',
-					),
-					this.$locale.baseText(
-						'credentialEdit.credentialSharing.list.delete.confirm.cancelButtonText',
-					),
-				);
-
-				if (confirm) {
-					this.$emit(
-						'change',
-						this.credentialData.sharedWith.filter((sharee: IUser) => {
-							return sharee.id !== user.id;
-						}),
-					);
-				}
-			}
-		},
-		async loadUsers() {
-			await this.usersStore.fetchUsers();
-		},
-		goToUsersSettings() {
-			this.$router.push({ name: VIEWS.USERS_SETTINGS });
-			this.modalBus.$emit('close');
-		},
 		goToUpgrade() {
-			const linkUrlTranslationKey = this.uiStore.contextBasedTranslationKeys
-				.upgradeLinkUrl as BaseTextKey;
-			let linkUrl = this.$locale.baseText(linkUrlTranslationKey);
-
-			if (linkUrlTranslationKey.endsWith('.upgradeLinkUrl')) {
-				linkUrl = `${this.usageStore.viewPlansUrl}&source=credential_sharing`;
-			} else if (linkUrlTranslationKey.endsWith('.desktop')) {
-				linkUrl = `${linkUrl}&utm_campaign=upgrade-credentials-sharing`;
-			}
-
-			window.open(linkUrl, '_blank');
+			void this.uiStore.goToUpgrade('credential_sharing', 'upgrade-credentials-sharing');
 		},
-	},
-	mounted() {
-		this.loadUsers();
 	},
 });
 </script>

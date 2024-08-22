@@ -2,19 +2,19 @@ import type {
 	IDataObject,
 	IExecuteFunctions,
 	IHookFunctions,
+	IHttpRequestMethods,
 	ILoadOptionsFunctions,
 	INodePropertyOptions,
+	IRequestOptions,
 	JsonObject,
 } from 'n8n-workflow';
 import { NodeApiError } from 'n8n-workflow';
 
-import type { OptionsWithUri } from 'request';
-
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import * as losslessJSON from 'lossless-json';
 
-function convertLosslessNumber(key: any, value: any) {
+function convertLosslessNumber(_: any, value: any) {
 	if (value?.isLosslessNumber) {
 		return value.toString();
 	} else {
@@ -27,7 +27,7 @@ function convertLosslessNumber(key: any, value: any) {
  */
 export async function goToWebinarApiRequest(
 	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
 	qs: IDataObject,
 	body: IDataObject | IDataObject[],
@@ -36,7 +36,7 @@ export async function goToWebinarApiRequest(
 	const operation = this.getNodeParameter('operation', 0);
 	const resource = this.getNodeParameter('resource', 0);
 
-	const options: OptionsWithUri = {
+	const options: IRequestOptions = {
 		headers: {
 			'user-agent': 'n8n',
 			Accept: 'application/json',
@@ -86,9 +86,9 @@ export async function goToWebinarApiRequest(
  */
 export async function goToWebinarApiRequestAllItems(
 	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
-	qs: IDataObject,
+	query: IDataObject,
 	body: IDataObject,
 	resource: string,
 ) {
@@ -103,7 +103,7 @@ export async function goToWebinarApiRequestAllItems(
 	let responseData;
 
 	do {
-		responseData = await goToWebinarApiRequest.call(this, method, endpoint, qs, body);
+		responseData = await goToWebinarApiRequest.call(this, method, endpoint, query, body);
 
 		if (responseData.page && parseInt(responseData.page.totalElements as string, 10) === 0) {
 			return [];
@@ -113,8 +113,9 @@ export async function goToWebinarApiRequestAllItems(
 			returnData.push(...(responseData as IDataObject[]));
 		}
 
-		if (qs.limit && returnData.length >= qs.limit) {
-			returnData = returnData.splice(0, qs.limit as number);
+		const limit = query.limit as number | undefined;
+		if (limit && returnData.length >= limit) {
+			returnData = returnData.splice(0, limit);
 			return returnData;
 		}
 	} while (
@@ -138,7 +139,7 @@ export async function handleGetAll(
 		qs.limit = this.getNodeParameter('limit', 0);
 	}
 
-	return goToWebinarApiRequestAllItems.call(this, 'GET', endpoint, qs, body, resource);
+	return await goToWebinarApiRequestAllItems.call(this, 'GET', endpoint, qs, body, resource);
 }
 
 export async function loadWebinars(this: ILoadOptionsFunctions) {

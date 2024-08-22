@@ -353,7 +353,7 @@ export class Medium implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the available publications to display them to user so that he can
+			// Get all the available publications to display them to user so that they can
 			// select them easily
 			async getPublications(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -516,7 +516,7 @@ export class Medium implements INodeType {
 					returnData.push(responseData as IDataObject);
 				}
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					returnData.push({ error: error.message });
 					continue;
 				}

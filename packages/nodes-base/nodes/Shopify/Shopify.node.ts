@@ -64,6 +64,13 @@ export class Shopify implements INodeType {
 		],
 		properties: [
 			{
+				displayName: 'Shopify API Version: 2024-07',
+				type: 'notice',
+				name: 'apiVersion',
+				default: '',
+				isNodeSetting: true,
+			},
+			{
 				displayName: 'Authentication',
 				name: 'authentication',
 				type: 'options',
@@ -111,7 +118,7 @@ export class Shopify implements INodeType {
 
 	methods = {
 		loadOptions: {
-			// Get all the available products to display them to user so that he can
+			// Get all the available products to display them to user so that they can
 			// select them easily
 			async getProducts(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -133,7 +140,7 @@ export class Shopify implements INodeType {
 				}
 				return returnData;
 			},
-			// Get all the available locations to display them to user so that he can
+			// Get all the available locations to display them to user so that they can
 			// select them easily
 			async getLocations(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -459,7 +466,7 @@ export class Shopify implements INodeType {
 
 				returnData.push(...executionData);
 			} catch (error) {
-				if (this.continueOnFail()) {
+				if (this.continueOnFail(error)) {
 					const executionErrorData = this.helpers.constructExecutionMetaData(
 						this.helpers.returnJsonArray({ error: error.message }),
 						{ itemData: { item: i } },
@@ -470,6 +477,6 @@ export class Shopify implements INodeType {
 				throw error;
 			}
 		}
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }
