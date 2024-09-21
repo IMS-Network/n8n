@@ -1,26 +1,10 @@
-<template>
-	<N8nResizeWrapper
-		:is-resizing-enabled="!readOnly"
-		:height="height"
-		:width="width"
-		:min-height="minHeight"
-		:min-width="minWidth"
-		:scale="scale"
-		:grid-size="gridSize"
-		@resizeend="onResizeEnd"
-		@resize="onResize"
-		@resizestart="onResizeStart"
-	>
-		<N8nSticky v-bind="stickyBindings" />
-	</N8nResizeWrapper>
-</template>
-
 <script lang="ts" setup>
 import { computed, ref, useAttrs } from 'vue';
+
 import N8nResizeWrapper, { type ResizeData } from '../N8nResizeWrapper/ResizeWrapper.vue';
+import { defaultStickyProps } from '../N8nSticky/constants';
 import N8nSticky from '../N8nSticky/Sticky.vue';
 import type { StickyProps } from '../N8nSticky/types';
-import { defaultStickyProps } from '../N8nSticky/constants';
 
 type ResizeableStickyProps = StickyProps & {
 	scale?: number;
@@ -59,3 +43,20 @@ const onResizeEnd = () => {
 	emit('resizeend');
 };
 </script>
+
+<template>
+	<N8nResizeWrapper
+		:is-resizing-enabled="!readOnly"
+		:height="height"
+		:width="width"
+		:min-height="minHeight"
+		:min-width="minWidth"
+		:scale="scale"
+		:grid-size="gridSize"
+		@resizeend="onResizeEnd"
+		@resize="onResize"
+		@resizestart="onResizeStart"
+	>
+		<N8nSticky v-bind="stickyBindings" />
+	</N8nResizeWrapper>
+</template>

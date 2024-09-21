@@ -1,5 +1,6 @@
-import AskAssistantChat from './AskAssistantChat.vue';
 import type { StoryFn } from '@storybook/vue3';
+
+import AskAssistantChat from './AskAssistantChat.vue';
 import type { ChatUI } from '../../types/assistant';
 
 export default {
@@ -235,6 +236,35 @@ EndOfSessionChat.args = {
 			type: 'event',
 			eventName: 'end-session',
 			read: false,
+		},
+	]),
+};
+
+export const AssistantThinkingChat = Template.bind({});
+AssistantThinkingChat.args = {
+	user: {
+		firstName: 'Max',
+		lastName: 'Test',
+	},
+	loadingMessage: 'Thinking...',
+};
+
+export const WithCodeSnippet = Template.bind({});
+WithCodeSnippet.args = {
+	user: {
+		firstName: 'Max',
+		lastName: 'Test',
+	},
+	messages: getMessages([
+		{
+			id: '58575953',
+			type: 'text',
+			role: 'assistant',
+			content:
+				'To filter every other item in the Code node, you can use the following JavaScript code snippet. This code will iterate through the incoming items and only pass through every other item.',
+			codeSnippet:
+				"node.on('input', function(msg) {\n  if (msg.seed) { dummyjson.seed = msg.seed; }\n  try {\n      var value = dummyjson.parse(node.template, {mockdata: msg});\n      if (node.syntax === 'json') {\n          try { value = JSON.parse(value); }\n          catch(e) { node.error(RED._('datagen.errors.json-error')); }\n      }\n      if (node.fieldType === 'msg') {\n          RED.util.setMessageProperty(msg,node.field,value);\n      }\n      else if (node.fieldType === 'flow') {\n          node.context().flow.set(node.field,value);\n      }\n      else if (node.fieldType === 'global') {\n          node.context().global.set(node.field,value);\n      }\n      node.send(msg);\n  }\n  catch(e) {",
+			read: true,
 		},
 	]),
 };

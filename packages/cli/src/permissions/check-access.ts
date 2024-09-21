@@ -1,14 +1,14 @@
-import { Container } from 'typedi';
+import type { Scope } from '@n8n/permissions';
 // eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
 import { In } from '@n8n/typeorm';
-
-import { RoleService } from '@/services/role.service';
-import { SharedCredentialsRepository } from '@db/repositories/sharedCredentials.repository';
-import { SharedWorkflowRepository } from '@db/repositories/sharedWorkflow.repository';
-import { ProjectRepository } from '@db/repositories/project.repository';
-import type { User } from '@/databases/entities/User';
-import type { Scope } from '@n8n/permissions';
 import { ApplicationError } from 'n8n-workflow';
+import { Container } from 'typedi';
+
+import type { User } from '@/databases/entities/user';
+import { ProjectRepository } from '@/databases/repositories/project.repository';
+import { SharedCredentialsRepository } from '@/databases/repositories/shared-credentials.repository';
+import { SharedWorkflowRepository } from '@/databases/repositories/shared-workflow.repository';
+import { RoleService } from '@/services/role.service';
 
 export const userHasScope = async (
 	user: User,
